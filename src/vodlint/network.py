@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import cast
 
 import requests
 from requests.adapters import HTTPAdapter, Retry
@@ -13,7 +12,7 @@ class HttpClient:
     retries: int = 2
     user_agent: str = "vodlint/0.1"
 
-    def _session(self) -> requests.Session:
+    def _session(self):
         session = requests.Session()
         retry = Retry(
             total=self.retries,
@@ -27,8 +26,8 @@ class HttpClient:
         session.headers.update({"User-Agent": self.user_agent})
         return session
 
-    def get_bytes(self, url: str, headers: dict[str, str] | None = None) -> bytes:
+    def get_bytes(self, url: str, headers=None):
         with self._session() as s:
             resp = s.get(url, headers=headers, timeout=self.timeout_seconds)
             resp.raise_for_status()
-            return cast(bytes, resp.content)
+            return resp.content

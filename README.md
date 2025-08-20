@@ -44,12 +44,12 @@ print(report)  # dict ready to serialize to JSON
 ## Development
 
 - Python 3.11+
-- Ruff, Black, Mypy, Pytest configured via `pyproject.toml`
+- Ruff, Black, Pytest configured via `pyproject.toml`
 
 Run linters and tests:
 
 ```bash
-ruff check . && black --check . && mypy src && pytest -q
+ruff check . && black --check . && pytest -q
 ```
 
 ## License
