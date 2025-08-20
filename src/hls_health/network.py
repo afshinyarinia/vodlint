@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 import requests
 from requests.adapters import HTTPAdapter, Retry
@@ -30,4 +31,4 @@ class HttpClient:
         with self._session() as s:
             resp = s.get(url, headers=headers, timeout=self.timeout_seconds)
             resp.raise_for_status()
-            return resp.content
+            return cast(bytes, resp.content)
