@@ -11,7 +11,7 @@ from requests.adapters import HTTPAdapter, Retry
 class HttpClient:
     timeout_seconds: float = 10.0
     retries: int = 2
-    user_agent: str = "hls-health/0.1"
+    user_agent: str = "vodlint/0.1"
 
     def _session(self) -> requests.Session:
         session = requests.Session()

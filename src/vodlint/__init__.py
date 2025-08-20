@@ -1,4 +1,4 @@
-"""hls_health package."""
+"""vodlint package."""
 
 __all__ = [
     "__version__",

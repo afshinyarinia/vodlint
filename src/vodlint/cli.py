@@ -29,7 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
         "-v",
         "--version",
         action="version",
-        version=f"hls-health {__version__}",
+        version=f"vodlint {__version__}",
     )
     return parser
 

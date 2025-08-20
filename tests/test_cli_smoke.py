@@ -1,4 +1,4 @@
-from hls_health.cli import build_parser
+from vodlint.cli import build_parser
 
 
 def test_build_parser_has_options():

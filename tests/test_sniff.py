@@ -1,4 +1,4 @@
-from hls_health.parsers.sniff import sniff_container
+from vodlint.parsers.sniff import sniff_container
 
 
 def test_sniff_unknown_for_empty():

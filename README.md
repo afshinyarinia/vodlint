@@ -1,6 +1,6 @@
-# hls-health
+# vodlint
 
-A modern Python tool to analyze HLS playlists and segments for health, timing, and format info.
+VOD-focused linter and health checks for HLS/m3u8 manifests and segments.
 
 ## Features
 
@@ -24,7 +24,21 @@ pip install -e .[dev]
 ## Usage
 
 ```bash
-hls-health https://example.com/playlist.m3u8 -s 1 --json
+vodlint https://example.com/playlist.m3u8 -s 1 --json
+```
+
+## Programmatic use
+
+```python
+from vodlint.analyzer import analyze_playlist
+
+report = analyze_playlist(
+    "https://example.com/playlist.m3u8",
+    segments_to_sample=1,
+    http_timeout_seconds=10,
+    http_retries=2,
+)
+print(report)  # dict ready to serialize to JSON
 ```
 
 ## Development
