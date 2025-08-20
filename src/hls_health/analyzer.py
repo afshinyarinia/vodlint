@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import m3u8
 
@@ -16,7 +16,7 @@ class AnalyzerConfig:
 	http_retries: int = 2
 
 
-def _playlist_info(pl: m3u8.M3U8, url: str) -> Dict[str, Any]:
+def _playlist_info(pl: m3u8.M3U8, url: str) -> dict[str, Any]:
 	is_live = pl.is_endlist is False
 	segment_count = len(pl.segments or [])
 	media_sequence = getattr(pl, "media_sequence", None)
@@ -32,8 +32,8 @@ def _playlist_info(pl: m3u8.M3U8, url: str) -> Dict[str, Any]:
 	}
 
 
-def _variants(pl: m3u8.M3U8) -> List[Dict[str, Any]]:
-	variants: List[Dict[str, Any]] = []
+def _variants(pl: m3u8.M3U8) -> list[dict[str, Any]]:
+	variants: list[dict[str, Any]] = []
 	for p in pl.playlists or []:
 		stream_info = p.stream_info or {}
 		variants.append(
@@ -53,10 +53,10 @@ def analyze_playlist(
 	segments_to_sample: int = 0,
 	http_timeout_seconds: float = 10.0,
 	http_retries: int = 2,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
 	client = HttpClient(timeout_seconds=http_timeout_seconds, retries=http_retries)
 	pl = m3u8.load(playlist_location)
-	result: Dict[str, Any] = {
+	result: dict[str, Any] = {
 		"playlist": _playlist_info(pl, playlist_location),
 		"variants": _variants(pl),
 	}
@@ -64,7 +64,7 @@ def analyze_playlist(
 	if segments_to_sample <= 0:
 		return result
 
-	segment_probes: List[Dict[str, Any]] = []
+	segment_probes: list[dict[str, Any]] = []
 	if pl.is_variant:
 		for vidx, v in enumerate(pl.playlists or []):
 			media = m3u8.load(v.absolute_uri)

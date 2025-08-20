@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from typing import Any
 
 from . import __version__
 from .analyzer import analyze_playlist
@@ -23,7 +22,9 @@ def build_parser() -> argparse.ArgumentParser:
 	)
 	parser.add_argument("--json", action="store_true", help="Emit JSON instead of text output")
 	parser.add_argument("--timeout", type=float, default=10.0, help="HTTP timeout in seconds")
-	parser.add_argument("--retries", type=int, default=2, help="HTTP retry attempts for transient errors")
+	parser.add_argument(
+		"--retries", type=int, default=2, help="HTTP retry attempts for transient errors"
+	)
 	parser.add_argument(
 		"-v",
 		"--version",
@@ -51,8 +52,15 @@ def main(argv: list[str] | None = None) -> int:
 	# Text output
 	playlist = report["playlist"]
 	print(f"Playlist: {playlist['url']}")
-	print(f"  live: {playlist['is_live']}  version: {playlist.get('version')}  target_dur: {playlist.get('target_duration')}")
-	print(f"  media_sequence: {playlist.get('media_sequence')}  segments: {playlist.get('segment_count')}  duration: {playlist.get('duration')}")
+	live = playlist["is_live"]
+	version = playlist.get("version")
+	target_dur = playlist.get("target_duration")
+	print(f"  live: {live}  version: {version}  target_dur: {target_dur}")
+	
+	media_seq = playlist.get("media_sequence")
+	seg_count = playlist.get("segment_count")
+	duration = playlist.get("duration")
+	print(f"  media_sequence: {media_seq}  segments: {seg_count}  duration: {duration}")
 	variants = report.get("variants", [])
 	if variants:
 		print("Variants:")
@@ -64,8 +72,13 @@ def main(argv: list[str] | None = None) -> int:
 	if segment_probes:
 		print("Segment probes:")
 		for p in segment_probes:
+			variant_idx = p.get("variant_index")
+			seg_idx = p.get("segment_index")
+			container = p.get("container")
+			size_bytes = p.get("size_bytes")
 			print(
-				f"  variant={p.get('variant_index')} seg_index={p.get('segment_index')} container={p.get('container')} bytes={p.get('size_bytes')}"
+				f"  variant={variant_idx} seg_index={seg_idx} "
+				f"container={container} bytes={size_bytes}"
 			)
 	return 0
 

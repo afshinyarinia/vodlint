@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Optional
 
 import requests
 from requests.adapters import HTTPAdapter, Retry
@@ -27,7 +26,7 @@ class HttpClient:
 		session.headers.update({"User-Agent": self.user_agent})
 		return session
 
-	def get_bytes(self, url: str, headers: Optional[Dict[str, str]] = None) -> bytes:
+	def get_bytes(self, url: str, headers: dict[str, str] | None = None) -> bytes:
 		with self._session() as s:
 			resp = s.get(url, headers=headers, timeout=self.timeout_seconds)
 			resp.raise_for_status()

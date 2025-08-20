@@ -1,5 +1,4 @@
-import json
-from hls_health.cli import main, build_parser
+from hls_health.cli import build_parser
 
 
 def test_build_parser_has_options():
