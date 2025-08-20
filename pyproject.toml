@@ -30,6 +30,15 @@ dependencies = [
   "requests>=2.32.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "ruff>=0.12.0",
+  "black>=25.0.0",
+  "mypy>=1.17.0",
+  "pytest>=8.0.0",
+  "types-requests>=2.32.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/your-org/hls-health"
 Issues = "https://github.com/your-org/hls-health/issues"
