@@ -1,7 +1,7 @@
 import json
 import os
 import subprocess
-import sys
+import sysconfig
 from pathlib import Path
 
 import pytest
@@ -103,7 +103,9 @@ def test_installed_entry_point_exit_codes_outside_checkout(tmp_path, media_text,
     path = tmp_path / "input.m3u8"
     if content != "missing":
         path.write_text(media_text if content == "valid" else "invalid")
-    executable = Path(sys.executable).parent / ("vodlint.exe" if os.name == "nt" else "vodlint")
+    executable = Path(sysconfig.get_path("scripts")) / (
+        "vodlint.exe" if os.name == "nt" else "vodlint"
+    )
     result = subprocess.run(
         [str(executable), str(path), "--json"],
         cwd=tmp_path,

@@ -20,7 +20,11 @@ Verified locally on Windows on 2026-11-01. Version 0.2.0 is unreleased.
 
 CI now configures Windows and Linux across Python 3.11–3.14, a minimum-dependency
 job, distribution checks on both systems, a coverage floor, and job timeouts.
-Those hosted jobs were not run locally; their first GitHub run remains necessary.
+Hosted results are recorded in [GitHub Actions](https://github.com/afshinyarinia/vodlint/actions).
+The first hosted run exposed an installed-entry-point test assumption on global
+Windows Python installations: console scripts live in the installation's Scripts
+directory rather than beside python.exe. The test now uses sysconfig's scripts
+path, supporting both global installations and virtual environments.
 
 ## Original findings addressed
 
@@ -74,5 +78,6 @@ correctness. With sampling disabled, segment resources are not fetched. Coverage
 flags describe the requested inspection scope and never establish playback health.
 
 The HTTP timeout is for connect/read inactivity, not a total-run deadline. Use a
-CI job timeout as well as resource budgets. No code was committed, pushed, merged
-or published during this work.
+CI job timeout as well as resource budgets. The initial implementation was verified
+before committing. Subsequent commits and hosted CI results are recorded in Git
+history and GitHub Actions; no package release was published.
