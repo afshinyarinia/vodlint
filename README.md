@@ -1,233 +1,176 @@
 # VoDLint
 
-**VOD-focused linter and health checks for HLS/m3u8 manifests and segments.**
+A small HLS VOD manifest validator with optional segment-container sampling,
+designed for CI pipelines. Python 3.11+; MIT licensed.
 
-VoDLint analyzes HLS playlists and probes sample segments to detect timing issues, format problems, and playlist inconsistencies. Perfect for CI/CD pipelines, content validation, and debugging streaming issues.
+VoDLint evaluates the checks listed below, emits actionable findings, and returns
+a meaningful process status. Container sampling identifies signatures; it does
+not decode media or measure playback timing.
 
-## ✨ Features
+## Install from source
 
-- 🔍 **Playlist Analysis**: Parse master/media playlists, detect live vs VOD, extract metadata
-- 📊 **Segment Probing**: Download and analyze sample segments for container type (TS/AAC)
-- ⚡ **Fast & Reliable**: Built-in retries, timeouts, and robust error handling
-- 📋 **Multiple Formats**: Human-readable text output or structured JSON for automation
-- 🐍 **Python API**: Use programmatically in your own tools and scripts
-- 🔧 **CI/CD Ready**: Perfect for automated content validation pipelines
-
-## 🚀 Quick Start
-
-### Installation
+This describes the source version (0.2.0, unreleased):
 
 ```bash
-pip install vodlint
-```
-
-For development:
-```bash
-git clone <your-repo>
+git clone https://github.com/afshinyarinia/vodlint.git
 cd vodlint
-pip install -e .[dev]
+python -m venv .venv
+# Linux/macOS:
+source .venv/bin/activate
+# Windows PowerShell:
+# .venv\Scripts\Activate.ps1
+python -m pip install .
 ```
 
-### Basic Usage
-
-**Analyze a playlist:**
-```bash
-vodlint https://example.com/playlist.m3u8
-```
-
-**Sample first segment per variant:**
-```bash
-vodlint https://example.com/playlist.m3u8 -s 1
-```
-
-**Get JSON output for CI:**
-```bash
-vodlint https://example.com/playlist.m3u8 -s 1 --json
-```
-
-## 📖 Usage Examples
-
-### Command Line
+## Run in CI
 
 ```bash
-# Basic playlist info
-vodlint https://example.com/master.m3u8
+# Validate a local master and all its direct media manifests:
+vodlint path/to/master.m3u8 --json > report.json
 
-# Analyze first 3 segments per variant
-vodlint https://example.com/master.m3u8 --segments 3
+# Also fetch and identify the first three segments per media playlist:
+vodlint https://media.example.com/master.m3u8 -s 3 --json > report.json
 
-# Local file with custom timeout
-vodlint ./local-playlist.m3u8 --timeout 30 --retries 5
-
-# JSON output for scripting
-vodlint https://example.com/master.m3u8 -s 1 --json | jq '.playlist.is_live'
+# Offline, manifest-only example included in this checkout:
+vodlint tests/fixtures/vod.m3u8 --json
 ```
 
-### Python API
+Use the executable's exit status directly:
+
+| Code | Meaning |
+| --- | --- |
+| 0 | No findings at or above the selected failure threshold |
+| 1 | One or more lint findings reach the failure threshold |
+| 2 | Usage or resource failure; inspection could not finish as requested |
+
+The default failure threshold is **warning**. An unknown, encrypted, or
+initialization-dependent sampled segment produces a warning and exit 1.
+`--fail-on error` explicitly permits warnings; those warnings and incomplete
+inspection remain visible in the report. Operational failures always return 2.
+
+A master has no live/VOD status of its own. Each media playlist has its own
+metadata in `media_playlists`. Media must contain `EXT-X-ENDLIST` by default;
+use `--allow-live` for an intentional live/event snapshot.
+
+## Checks and limits
+
+| Rule ID | What it checks |
+| --- | --- |
+| `manifest.header` | First-line EXTM3U header |
+| `manifest.encoding` | UTF-8 manifest encoding |
+| `manifest.syntax` | Parser failures, duplicate singleton tags, URI/declaration pairing |
+| `manifest.mixed` | Mixed master/media tags |
+| `manifest.empty` | Missing media segments or master references |
+| `manifest.target-duration` | Positive integer target covering rounded declared segment durations |
+| `manifest.segment-duration` | Finite, positive EXTINF durations |
+| `manifest.endlist` | Completed media playlists in default VOD mode |
+| `manifest.version` | Positive version and byte-range compatibility |
+| `manifest.variant` | Stream URI and positive bandwidth |
+| `manifest.byterange` | Positive range length and correct implicit-offset predecessor |
+| `manifest.nested-master` | Media references that incorrectly resolve to another master |
+| `segment.unsupported` | Unrecognized/truncated or initialization-dependent sampled media |
+| `segment.encrypted` | Sampled encrypted media that cannot be inspected |
+
+Manifest findings have error severity; segment inspection limitations have
+warning severity. These are a documented subset of HLS checks, not complete
+protocol conformance validation. The relevant baseline syntax and duration/range
+semantics are described in [RFC 8216](https://www.rfc-editor.org/rfc/rfc8216.html).
+
+Declared duration sums EXTINF values. Master statistics are not fabricated from
+one child. Direct variant, I-frame, and URI-bearing rendition manifests are
+loaded and duplicate references are inspected once.
+
+Without `-s`, **only manifests are fetched**; referenced segment availability and
+payloads are not checked. With `-s N`, only the first N segments per unique media
+playlist are sampled. MPEG-TS and ADTS AAC signatures are recognized; packed AAC
+may have leading ID3 metadata. Encrypted and initialization-dependent samples
+are skipped explicitly. Keys and init segments are not fetched. fMP4 decoding,
+codec verification, PTS drift, keyframe alignment, full-stream validation, and
+continuous live monitoring are not implemented.
+
+HTTP responses and local reads are bounded. Defaults:
+
+- Maximum manifest: 2 MiB, also subject to the resource limit.
+- Maximum resource: 16 MiB.
+- Total bytes read: 64 MiB, including redirect and retry response bodies.
+- Resource fetches: 1,000, excluding transport retries and redirects.
+- HTTP timeout: 10 seconds for connect/read inactivity; this is not a total-run deadline.
+- Retries: two additional attempts for connection failures and HTTP 502/503/504.
+- Each resource has bounded redirects; HTTP range responses must match the requested bytes.
+
+Budget failures are operational errors, not passing inspections. A read may consume
+one bounded chunk beyond a byte limit before rejection. URL credentials, queries,
+and fragments are redacted from normal reports; URLs with secrets in path segments
+should be kept private.
+
+## Configuration
+
+| Option | Default |
+| --- | --- |
+| `-s, --segments N` | 0, manifests only |
+| `--json` | Text output |
+| `--timeout SECONDS` | `VODLINT_TIMEOUT`, otherwise 10 |
+| `--retries N` | `VODLINT_RETRIES`, otherwise 2 |
+| `--allow-live` | Off |
+| `--fail-on warning\|error` | warning |
+| `--max-resource-bytes N` | 16777216 |
+| `--max-total-bytes N` | 67108864 |
+| `--max-requests N` | 1000 |
+| `--version` | Show tool version |
+
+Explicit CLI options override environment defaults. Invalid numeric settings
+return usage error 2, including in JSON mode. Negative values are rejected.
+
+## Python API
 
 ```python
 from vodlint.analyzer import analyze_playlist
 
-# Basic analysis
-report = analyze_playlist("https://example.com/master.m3u8")
-print(f"Playlist type: {'Live' if report['playlist']['is_live'] else 'VOD'}")
-print(f"Variants: {len(report['variants'])}")
-
-# With segment sampling
 report = analyze_playlist(
-    playlist_location="https://example.com/master.m3u8",
+    "path/to/master.m3u8",
     segments_to_sample=2,
     http_timeout_seconds=15,
-    http_retries=3
+    http_retries=1,
 )
-
-# Check for issues
-for probe in report.get('segment_probes', []):
-    if probe['container'] == 'unknown':
-        print(f"⚠️  Unknown container in variant {probe['variant_index']}")
+print(report["status"])  # passed, failed, or error
+for finding in report["findings"]:
+    print(finding["rule_id"], finding["message"], finding["remediation"])
 ```
 
-## 📊 Output Format
+Expected resource failures return structured errors with partial results.
+Invalid API configuration raises `ValueError`.
 
-### Text Output
-```
-Playlist: https://example.com/master.m3u8
-  live: false  version: 3  target_dur: 10.0
-  media_sequence: 0  segments: 180  duration: 1800.0
-Variants:
-  [0] bandwidth=232370 uri=low/playlist.m3u8
-  [1] bandwidth=649879 uri=high/playlist.m3u8
-Segment probes:
-  variant=0 seg_index=0 container=ts bytes=376832
-  variant=1 seg_index=0 container=ts bytes=982736
-```
+## Report contract
 
-### JSON Output
-```json
-{
-  "playlist": {
-    "url": "https://example.com/master.m3u8",
-    "is_live": false,
-    "version": 3,
-    "media_sequence": 0,
-    "segment_count": 180,
-    "duration": 1800.0,
-    "target_duration": 10.0
-  },
-  "variants": [
-    {
-      "bandwidth": 232370,
-      "resolution": "640x480",
-      "codecs": "avc1.42001e,mp4a.40.2",
-      "uri": "low/playlist.m3u8"
-    }
-  ],
-  "segment_probes": [
-    {
-      "variant_index": 0,
-      "segment_index": 0,
-      "url": "https://example.com/low/segment000.ts",
-      "container": "ts",
-      "size_bytes": 376832
-    }
-  ]
-}
-```
+JSON has `schema_version: "1"` and `tool_version`. Top-level fields are:
 
-## 🔧 Configuration
+| Field | Meaning |
+| --- | --- |
+| `source` | Redacted input location |
+| `status` | passed, failed, or error |
+| `playlist` | Root metadata, or null if it could not be validated |
+| `variants` | Master stream metadata; resolution is a string such as 640x480 |
+| `media_playlists` | Validated media metadata with declared durations and variant indices |
+| `segment_probes` | Sample results: inspected, unsupported, skipped, or error |
+| `findings` | rule_id, severity, message, remediation, url, segment_index |
+| `errors` | code, url, message; expected operational/usage failures |
+| `summary` | Scope, counts, inspection completion, and whether every declared segment was sampled |
 
-### CLI Options
+Master `is_live`, `segment_count`, `duration`, and `media_sequence` are null.
+Media duration is declared, not measured. Probe byte ranges include
+`offset` and `length`; probe sizes refer to fetched range bytes.
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `url` | Playlist URL or file path | Required |
-| `-s, --segments` | Segments to sample per variant | `0` (no sampling) |
-| `--json` | Output JSON instead of text | `false` |
-| `--timeout` | HTTP timeout in seconds | `10.0` |
-| `--retries` | HTTP retry attempts | `2` |
+`summary.inspection_complete` means the requested scope finished without
+manifest errors, resource failures, or unsupported/skipped samples. It does **not** mean every
+segment was inspected, nor that the content plays. `all_segments_sampled`
+separately identifies complete signature sampling. An invalid child prevents
+both coverage flags from claiming completeness. Errors take precedence over lint failure.
 
-### Environment Variables
+Within schema version 1, consumers should tolerate new fields and rule IDs.
+Removing fields or changing their types requires a new schema version.
 
-```bash
-export VODLINT_TIMEOUT=30
-export VODLINT_RETRIES=5
-vodlint https://example.com/playlist.m3u8
-```
+## Development and contributing
 
-## 🛠️ Use Cases
-
-### CI/CD Validation
-```bash
-# Validate playlist in CI
-vodlint $PLAYLIST_URL --json | jq -e '.playlist.segment_count > 0'
-```
-
-### Content QA
-```bash
-# Check all variants have valid containers
-vodlint $PLAYLIST_URL -s 1 --json | \
-  jq -e '.segment_probes | all(.container != "unknown")'
-```
-
-### Debugging
-```bash
-# Quick health check
-vodlint $PLAYLIST_URL -s 3 | grep -E "(live|segments|container)"
-```
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md).
-
-### Development Setup
-
-```bash
-git clone <repo-url>
-cd vodlint
-pip install -e .[dev]
-
-# Run tests
-pytest
-
-# Lint and format
-ruff check .
-black .
-
-# Full CI check
-ruff check . && black --check . && pytest -q
-```
-
-## 📋 Roadmap
-
-- [ ] **fMP4/CMAF support** - Parse `.m4s` segments
-- [ ] **Timing analysis** - Detect drift and discontinuities  
-- [ ] **Encryption detection** - Report on DRM and key rotation
-- [ ] **Concurrent downloads** - Parallel segment fetching
-- [ ] **Rich output** - Colored terminal output
-- [ ] **DASH support** - Extend beyond HLS
-
-## 🐛 Troubleshooting
-
-**"Connection timeout"**
-```bash
-vodlint $URL --timeout 30 --retries 5
-```
-
-**"Unknown container"**
-- Segment may be encrypted or corrupted
-- Try sampling different segments: `-s 3`
-
-**"Import error"**
-```bash
-pip install -e .  # Reinstall in development mode
-```
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## 🔗 Links
-
-- **Issues**: [GitHub Issues](https://github.com/your-org/vodlint/issues)
-- **PyPI**: [vodlint on PyPI](https://pypi.org/project/vodlint/) *(coming soon)*
-- **Docs**: [Full Documentation](https://your-org.github.io/vodlint/) *(coming soon)*
+See [CONTRIBUTING.md](CONTRIBUTING.md), [architecture notes](project-detail.md),
+and [CHANGELOG.md](CHANGELOG.md). Bugs and feature requests belong in
+[GitHub Issues](https://github.com/afshinyarinia/vodlint/issues).

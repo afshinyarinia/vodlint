@@ -5,26 +5,62 @@ on:
     branches: [ main, master ]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
-  build:
+  quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e '.[dev]'
+      - run: python -m ruff check .
+      - run: python -m black --check .
+
+  test:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .[dev]
-      - name: Lint
-        run: |
-          ruff check .
-          black --check .
+      - run: python -m pip install -e '.[dev]'
+      - run: python -m pytest --cov=vodlint --cov-branch --cov-report=term-missing --cov-fail-under=85
 
-      - name: Test
-        run: |
-          pytest -q
+  minimum-dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -e '.[dev]' 'm3u8==4.0.0' 'requests==2.32.5'
+      - run: python -m pytest -q
+
+  distribution:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e '.[dev]'
+      - run: python -m build
+      - run: python -m twine check dist/*
+      - run: python tools/check_distribution.py
