@@ -62,8 +62,9 @@ reproduced, covered by failing regression tests, and fixed:
 Follow-up transport tests also cover cumulative intermediate-body budgets,
 redirect loops, cookie preservation and cross-host credential stripping.
 
-Two optional review suggestions remain future report enhancements: a dedicated
-resource inspection inventory and an explicit unsupported-sample summary count.
+Two optional review suggestions were subsequently implemented as additive
+schema-v1 fields: a resource inspection inventory (issue #4) and an explicit
+unsupported-sample summary count (issue #3).
 Current errors/findings retain affected locations, and every probe retains its
 inspection status, including unsupported results.
 

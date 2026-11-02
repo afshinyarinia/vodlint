@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 
 import m3u8
 
-from .models import Finding, add_error, finalize_report, new_report, redact_location
+from .models import Finding, add_error, add_resource, finalize_report, new_report, redact_location
 from .network import MAX_REQUESTS, MAX_RESOURCE_BYTES, MAX_TOTAL_BYTES, HttpClient, ResourceError
 from .parsers.sniff import sniff_container
 from .rules import is_master, parse_manifest
@@ -68,16 +68,18 @@ def _variants(pl: m3u8.M3U8) -> list[dict[str, Any]]:
     return variants
 
 
-def _load(client, location, report, config):
+def _load(client, location, report, config, inspection):
     try:
         resource = client.fetch(location, max_bytes=2 * 1024 * 1024)
     except ResourceError as error:
         add_error(report, "resource.fetch", location, str(error))
         return None
+    inspection["effective_url"] = redact_location(resource.location)
     report["summary"]["manifests_checked"] += 1
     try:
         text = resource.data.decode("utf-8")
     except UnicodeDecodeError:
+        inspection.update(status="invalid", reason="invalid_encoding")
         report["findings"].append(
             Finding(
                 "manifest.encoding",
@@ -90,6 +92,10 @@ def _load(client, location, report, config):
         return None
     pl, findings = parse_manifest(text, resource.location, config.require_vod)
     report["findings"].extend(finding.to_dict() for finding in findings)
+    inspection.update(
+        status="validated" if pl is not None else "invalid",
+        reason=None if pl is not None else "invalid_manifest",
+    )
     return (pl, resource.location) if pl is not None else None
 
 
@@ -161,7 +167,7 @@ def _ranges(pl, location, report):
     return ranges, uris
 
 
-def _probe_media(client, pl, location, variant_index, report, config):
+def _probe_media(client, pl, location, variant_index, report, config, manifest_id):
     info = _playlist_info(pl, location)
     info["variant_index"] = variant_index
     report["media_playlists"].append(info)
@@ -183,10 +189,25 @@ def _probe_media(client, pl, location, variant_index, report, config):
             "status": "skipped",
         }
         report["segment_probes"].append(probe)
+        inspection = add_resource(
+            report,
+            "segment",
+            uris[index] if uris[index] is not None else segment.uri,
+            parent_id=manifest_id,
+            segment_index=index,
+            byte_range=probe["byte_range"],
+        )
         if byte_range is False:
+            inspection.update(
+                status="invalid",
+                reason="invalid_uri" if uris[index] is None else "invalid_byterange",
+            )
             continue
         encrypted = segment.key and segment.key.method != "NONE"
         if encrypted or segment.init_section:
+            inspection.update(
+                status="skipped", reason="encrypted" if encrypted else "initialization_dependent"
+            )
             rule_id = "segment.encrypted" if encrypted else "segment.unsupported"
             report["findings"].append(
                 Finding(
@@ -200,7 +221,8 @@ def _probe_media(client, pl, location, variant_index, report, config):
             )
             continue
         try:
-            content = client.fetch(url, byte_range=byte_range).data
+            resource = client.fetch(url, byte_range=byte_range)
+            content = resource.data
         except ResourceError as error:
             probe["status"] = "error"
             add_error(report, "resource.fetch", url, str(error))
@@ -208,6 +230,11 @@ def _probe_media(client, pl, location, variant_index, report, config):
         probe["container"] = sniff_container(content)
         probe["size_bytes"] = len(content)
         probe["status"] = "inspected" if probe["container"] != "unknown" else "unsupported"
+        inspection.update(
+            effective_url=redact_location(resource.location),
+            status=probe["status"],
+            reason="unknown_container" if probe["status"] == "unsupported" else None,
+        )
         if probe["status"] == "unsupported":
             report["findings"].append(
                 Finding(
@@ -256,29 +283,39 @@ def analyze_playlist(
         max_total_bytes=max_total_bytes,
         max_requests=max_requests,
     ) as client:
-        loaded = _load(client, playlist_location, report, config)
+        root = add_resource(report, "manifest", playlist_location)
+        loaded = _load(client, playlist_location, report, config, root)
         if loaded:
             pl, location = loaded
             report["playlist"] = _playlist_info(pl, location)
             report["variants"] = _variants(pl)
             if not is_master(pl):
-                _probe_media(client, pl, location, None, report, config)
+                _probe_media(client, pl, location, None, report, config, root["id"])
             else:
                 references = list(enumerate(pl.playlists))
                 references.extend((None, p) for p in pl.iframe_playlists)
                 references.extend((None, p) for p in pl.media if p.uri)
-                seen = set()
+                seen = {}
                 for index, reference in references:
                     uri = _resolve_uri(reference, location, report)
+                    inspection = add_resource(
+                        report,
+                        "manifest",
+                        uri if uri is not None else reference.uri,
+                        parent_id=root["id"],
+                    )
                     if uri is None:
+                        inspection.update(status="invalid", reason="invalid_uri")
                         continue
                     if uri in seen:
+                        inspection.update(status="duplicate", reason=None, duplicate_of=seen[uri])
                         continue
-                    seen.add(uri)
-                    child = _load(client, uri, report, config)
+                    seen[uri] = inspection["id"]
+                    child = _load(client, uri, report, config, inspection)
                     if child:
                         media, child_location = child
                         if is_master(media):
+                            inspection.update(status="invalid", reason="nested_master")
                             report["findings"].append(
                                 Finding(
                                     "manifest.nested-master",
@@ -289,5 +326,13 @@ def analyze_playlist(
                                 ).to_dict()
                             )
                         else:
-                            _probe_media(client, media, child_location, index, report, config)
+                            _probe_media(
+                                client,
+                                media,
+                                child_location,
+                                index,
+                                report,
+                                config,
+                                inspection["id"],
+                            )
     return finalize_report(report, config.fail_on)

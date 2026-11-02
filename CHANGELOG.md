@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add a schema-v1 resource inspection inventory with ordered manifest/sample
+  outcomes, redacted locations and links to shared duplicate inspections (issue #4).
 - Add schema-v1 `summary.segments_unsupported`, counting unsupported probes
   separately from inspected, skipped and failed samples (issue #3).
 - Add downloadable manifest examples, a five-minute walkthrough and troubleshooting.

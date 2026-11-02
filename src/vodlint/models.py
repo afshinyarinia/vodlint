@@ -49,6 +49,7 @@ def new_report(source: str, segments: int = 0) -> dict[str, Any]:
         "variants": [],
         "media_playlists": [],
         "segment_probes": [],
+        "resources": [],
         "findings": [],
         "errors": [],
         "summary": {
@@ -57,6 +58,24 @@ def new_report(source: str, segments: int = 0) -> dict[str, Any]:
             "segments_requested": 0,
         },
     }
+
+
+def add_resource(report, kind, url, *, parent_id=None, segment_index=None, byte_range=None):
+    """Register a selected resource before fetching; callers record its final outcome."""
+    resource = {
+        "id": len(report["resources"]),
+        "kind": kind,
+        "url": redact_location(url),
+        "effective_url": None,
+        "status": "error",
+        "reason": "fetch_error",
+        "parent_id": parent_id,
+        "segment_index": segment_index,
+        "byte_range": byte_range,
+        "duplicate_of": None,
+    }
+    report["resources"].append(resource)
+    return resource
 
 
 def add_error(report: dict[str, Any], code: str, url: str, message: str):

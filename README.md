@@ -194,6 +194,7 @@ JSON has `schema_version: "1"` and `tool_version`. Top-level fields are:
 | `variants` | Master stream metadata; resolution is a string such as 640x480 |
 | `media_playlists` | Validated media metadata with declared durations and variant indices |
 | `segment_probes` | Sample results: inspected, unsupported, skipped, or error |
+| `resources` | Ordered manifest/sample inspection inventory, including failures, skips and duplicate references (next release) |
 | `findings` | rule_id, severity, message, remediation, url, segment_index |
 | `errors` | code, url, message; expected operational/usage failures |
 | `summary` | Scope, counts, inspection completion, and whether every declared segment was sampled |
@@ -220,6 +221,11 @@ both coverage flags from claiming completeness. Errors take precedence over lint
 
 Within schema version 1, consumers should tolerate new fields and rule IDs.
 Removing fields or changing their types requires a new schema version.
+
+The next release adds a schema-v1 [resource inventory](docs/resource-inventory.md)
+with redacted locations, outcomes and parent/duplicate links. It lists only
+manifests and selected samples; an entry does not imply its content was fetched.
+The published 0.2.0 package retains its original report fields.
 
 ## Development and contributing
 
