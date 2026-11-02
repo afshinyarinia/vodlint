@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add schema-v1 `summary.segments_unsupported`, counting unsupported probes
+  separately from inspected, skipped and failed samples (issue #3).
 - Add downloadable manifest examples, a five-minute walkthrough and troubleshooting.
 - Add a GitHub Actions integration using the published package and retained reports.
 - Add issue forms, a PR template, community guidance and a private security policy.

@@ -181,9 +181,11 @@ def test_unsupported_sample_fails_default_threshold(tmp_path, media_text):
     assert report["status"] == "failed"
     assert "segment.unsupported" in rule_ids(report)
     assert report["summary"]["inspection_complete"] is False
+    assert report["summary"]["segments_unsupported"] == 1
     permissive = analyze_text(tmp_path, media_text, segments_to_sample=1, fail_on="error")
     assert permissive["status"] == "passed"
     assert permissive["summary"]["inspection_complete"] is False
+    assert permissive["summary"]["segments_unsupported"] == 1
 
 
 def test_encrypted_sample_is_explicitly_skipped(tmp_path):
@@ -318,7 +320,53 @@ def test_init_dependent_sample_is_skipped_with_warning(tmp_path):
     assert report["status"] == "failed"
     assert "segment.unsupported" in rule_ids(report)
     assert report["segment_probes"][0]["status"] == "skipped"
+    assert report["summary"]["segments_unsupported"] == 0
     assert report["errors"] == []
+
+
+@pytest.mark.parametrize("fail_on", ["warning", "error"])
+def test_mixed_sample_outcomes_have_distinct_reconciling_counts(tmp_path, ts_bytes, fail_on):
+    (tmp_path / "supported.ts").write_bytes(ts_bytes)
+    (tmp_path / "unknown.bin").write_bytes(b"not a media container")
+    report = analyze_text(
+        tmp_path,
+        "#EXTM3U\n#EXT-X-TARGETDURATION:1\n"
+        "#EXTINF:1,\nsupported.ts\n#EXTINF:1,\nunknown.bin\n"
+        '#EXT-X-KEY:METHOD=AES-128,URI="key"\n#EXTINF:1,\nencrypted.ts\n'
+        "#EXT-X-KEY:METHOD=NONE\n#EXTINF:1,\nmissing.ts\n#EXT-X-ENDLIST\n",
+        segments_to_sample=4,
+        fail_on=fail_on,
+    )
+    summary = report["summary"]
+    counts = [
+        summary[field]
+        for field in (
+            "segments_checked",
+            "segments_unsupported",
+            "segments_skipped",
+            "segments_failed",
+        )
+    ]
+    assert counts == [1, 1, 1, 1]
+    assert summary["segments_requested"] == sum(counts) == 4
+    assert [probe["status"] for probe in report["segment_probes"]] == [
+        "inspected",
+        "unsupported",
+        "skipped",
+        "error",
+    ]
+    assert report["schema_version"] == "1"
+    assert report["status"] == "error"
+    assert summary["inspection_complete"] is False
+    assert summary["all_segments_sampled"] is False
+
+
+def test_no_sampling_reports_zero_unsupported(tmp_path, media_text):
+    report = analyze_text(tmp_path, media_text)
+    assert report["summary"]["segments_unsupported"] == 0
+    assert report["summary"]["segments_requested"] == 0
+    assert report["segment_probes"] == []
+    assert report["status"] == "passed"
 
 
 def test_shared_http_session_preserves_cookies(http_server, media_text):

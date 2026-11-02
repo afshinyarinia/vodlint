@@ -202,6 +202,16 @@ Master `is_live`, `segment_count`, `duration`, and `media_sequence` are null.
 Media duration is declared, not measured. Probe byte ranges include
 `offset` and `length`; probe sizes refer to fetched range bytes.
 
+Sample outcomes are counted separately in the summary: `segments_checked` for
+inspected signatures, `segments_unsupported` for unrecognized/truncated media,
+`segments_skipped` for samples deliberately not fetched/inspected, and
+`segments_failed` for resource errors. These four counts sum to
+`segments_requested`, the samples selected from validated media playlists.
+All are zero when sampling is disabled. Encrypted and initialization-dependent
+media count as skipped, even if their finding uses `segment.unsupported`.
+The new count is additive within schema version 1 and does not change severity
+thresholds, exit codes or completeness flags.
+
 `summary.inspection_complete` means the requested scope finished without
 manifest errors, resource failures, or unsupported/skipped samples. It does **not** mean every
 segment was inspected, nor that the content plays. `all_segments_sampled`

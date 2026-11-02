@@ -76,6 +76,7 @@ def finalize_report(report: dict[str, Any], fail_on: Severity = "warning") -> di
         {
             "segment_count": segment_count,
             "segments_checked": checked,
+            "segments_unsupported": sum(p["status"] == "unsupported" for p in probes),
             "segments_failed": sum(p["status"] == "error" for p in probes),
             "segments_skipped": sum(p["status"] == "skipped" for p in probes),
             "error_count": len(report["errors"]),
