@@ -4,6 +4,40 @@ Start with a minimal playlist or segment fixture showing a user-visible
 problem. Contributions should preserve predictable exit codes, deterministic
 JSON, partial results, and the lightweight runtime dependencies.
 
+Read the [code of conduct](CODE_OF_CONDUCT.md). For vulnerabilities, use the
+[private reporting process](SECURITY.md) rather than a public issue.
+
+## Choosing a first contribution
+
+Browse [open issues](https://github.com/afshinyarinia/vodlint/issues). The
+documentation walkthrough is the beginner-friendly starting point; real-media
+fixtures and report enhancements require more domain or schema knowledge.
+Comment on the issue before starting substantial work so the maintainer can
+confirm the approach and avoid duplicate effort. Small typo fixes can go straight
+to a pull request.
+
+| Starter task | Focus |
+| --- | --- |
+| [Real TS fixture (#1)](https://github.com/afshinyarinia/vodlint/issues/1) | Media provenance, licensing and offline coverage |
+| [Real ADTS fixture (#2)](https://github.com/afshinyarinia/vodlint/issues/2) | AAC frame verification and offline coverage |
+| [Unsupported-sample count (#3)](https://github.com/afshinyarinia/vodlint/issues/3) | Additive schema field and outcome accounting |
+| [Resource inspection inventory (#4)](https://github.com/afshinyarinia/vodlint/issues/4) | Schema design and incomplete-resource visibility |
+| [Documentation walkthrough (#5)](https://github.com/afshinyarinia/vodlint/issues/5) | Beginner-friendly first-run feedback |
+
+## Review and compatibility expectations
+
+The repository maintainer, [@afshinyarinia](https://github.com/afshinyarinia),
+reviews contributions on a best-effort basis; there is no guaranteed response
+time. Keep changes focused, explain the user-visible result and include test
+evidence. Review may request smaller scope or additional fixtures. A green CI
+run is required before merge, but does not substitute for maintainer review.
+
+New optional JSON fields and rule IDs may be added within schema version 1.
+Removing fields or changing their types requires a new schema version. Changes
+to default severity or failure behavior must be called out in release notes.
+Discuss significant CLI/API changes in an issue before implementation. Published
+release files are immutable; all fixes ship in a new version.
+
 ## Setup
 
 Python 3.11 or newer:

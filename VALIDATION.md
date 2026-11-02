@@ -1,6 +1,8 @@
 # CI validation changes and evidence
 
-Verified locally on Windows on 2026-11-01. Version 0.2.0 is unreleased.
+This records pre-release verification on Windows on 2026-11-01. Version 0.2.0
+was subsequently [released on 2026-11-02](https://github.com/afshinyarinia/vodlint/releases/tag/v0.2.0)
+and [published to PyPI](https://pypi.org/project/vodlint/0.2.0/).
 
 ## Results
 
@@ -80,4 +82,5 @@ flags describe the requested inspection scope and never establish playback healt
 The HTTP timeout is for connect/read inactivity, not a total-run deadline. Use a
 CI job timeout as well as resource budgets. The initial implementation was verified
 before committing. Subsequent commits and hosted CI results are recorded in Git
-history and GitHub Actions; no package release was published.
+history and GitHub Actions. The 0.2.0 publication completed after this original
+verification; its published files remain unchanged.

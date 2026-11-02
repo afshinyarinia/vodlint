@@ -1,0 +1,49 @@
+name: Bug report
+description: Report incorrect validation or a reproducible failure.
+body:
+  - type: markdown
+    attributes:
+      value: 'For vulnerabilities, use the private security reporting link instead. Remove credentials, signed URLs, private media, and personal data before posting.'
+  - type: input
+    id: version
+    attributes:
+      label: VoDLint version
+      description: Output of vodlint --version.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Operating system and Python version
+      placeholder: 'Ubuntu 24.04, Python 3.12.10'
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      description: Include options; replace sensitive URLs or paths with safe placeholders.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and sanitized output
+      description: Include the exit code, rule IDs and relevant output.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Sanitized reproduction
+      description: Paste a minimal manifest and steps, using redistributable or synthetic data.
+      render: text
+    validations:
+      required: true

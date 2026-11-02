@@ -23,7 +23,31 @@ python -m pip install "vodlint==0.2.0"
 
 Verify the installation with `vodlint --version`. Python 3.11 or newer is required.
 
-### Install from source
+## Five-minute quick start
+
+Download [valid.m3u8](https://raw.githubusercontent.com/afshinyarinia/vodlint/main/examples/valid.m3u8)
+and [invalid-target-duration.m3u8](https://raw.githubusercontent.com/afshinyarinia/vodlint/main/examples/invalid-target-duration.m3u8)
+(save each link with its filename), then run these commands in the download directory:
+
+```bash
+vodlint valid.m3u8
+vodlint invalid-target-duration.m3u8
+```
+
+The first prints `PASSED` and exits **0**; its declared duration is 11 seconds.
+The second prints `FAILED` with rule **manifest.target-duration** and exits **1**:
+its 12-second segment exceeds its target duration of 10 seconds. Check the exit
+status immediately after each command with `echo $?` in bash or `$LASTEXITCODE`
+in PowerShell. Use `--json` for structured findings and remediation messages.
+
+These examples validate manifests only. Their segment files are deliberately
+absent. A pass here establishes that the implemented manifest checks passed;
+it does not establish segment availability or playback. For actual media, use
+`-s N` to fetch the first N segments per media playlist and identify supported
+container signatures. Sampling does not decode media, measure timing or check
+every segment; the JSON summary reports its scope and completeness.
+
+## Install from source
 
 ```bash
 git clone https://github.com/afshinyarinia/vodlint.git
@@ -37,6 +61,10 @@ python -m pip install .
 ```
 
 ## Run in CI
+
+Start with the [ready-to-copy GitHub Actions workflow](.github/workflows/example-validation.yml)
+and [integration guide](docs/ci-integration.md). The workflow installs the published
+0.2.0 package, validates a checked-in manifest and retains its JSON report on failure.
 
 ```bash
 # Validate a local master and all its direct media manifests:
@@ -188,3 +216,18 @@ Removing fields or changing their types requires a new schema version.
 See [CONTRIBUTING.md](CONTRIBUTING.md), [architecture notes](project-detail.md),
 and [CHANGELOG.md](CHANGELOG.md). Bugs and feature requests belong in
 [GitHub Issues](https://github.com/afshinyarinia/vodlint/issues).
+See our [code of conduct](CODE_OF_CONDUCT.md) and report vulnerabilities using
+the [private security reporting channel](SECURITY.md).
+
+## Troubleshooting
+
+| Problem | What to do |
+| --- | --- |
+| Installation fails or no matching distribution | Check `python --version` (3.11+ required). Use a virtual environment and install with that interpreter's `python -m pip`. |
+| `vodlint` command is not found | Activate the environment where you installed it, or run `python -m vodlint.cli --version` with that interpreter. |
+| Exit 2 / resource or byte limit | Inspect `errors` in JSON. Check paths, network access and range support; increase the relevant `--max-resource-bytes`, `--max-total-bytes` or `--max-requests` only for a known workload. Manifests also have a fixed 2 MiB cap. |
+| Unsupported or encrypted sample | Inspect the resource with a compatible decoder. These warnings fail the default threshold. `--fail-on error` permits warnings but leaves incomplete inspection visible. |
+| Private/signed URL | Keep credentials in secrets/environment variables, quote the variable, and avoid shell tracing. Reports can still reveal private path segments; review before sharing. See the CI guide. |
+
+When reporting a bug, use the issue form and a small sanitized reproduction.
+Never include credentials, signed URL tokens, private media or keys in public issues.

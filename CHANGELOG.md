@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Add downloadable manifest examples, a five-minute walkthrough and troubleshooting.
+- Add a GitHub Actions integration using the published package and retained reports.
+- Add issue forms, a PR template, community guidance and a private security policy.
+
 ## [0.2.0](https://github.com/afshinyarinia/vodlint/releases/tag/v0.2.0) — 2026-11-02
 
 - Add manifest findings, actionable rule IDs, severity thresholds, and schema-v1 JSON.

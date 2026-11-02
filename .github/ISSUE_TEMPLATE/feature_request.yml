@@ -1,0 +1,22 @@
+name: Feature request
+description: Propose an improvement with a concrete use case.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: Who needs this, and what is difficult today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Include an example command, result or workflow if useful.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and compatibility
+      description: What workarounds exist, and would this change existing behavior?
