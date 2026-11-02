@@ -7,9 +7,23 @@ VoDLint evaluates the checks listed below, emits actionable findings, and return
 a meaningful process status. Container sampling identifies signatures; it does
 not decode media or measure playback timing.
 
-## Install from source
+## Installation
 
-This describes the source version (0.2.0, unreleased):
+Install the published package from [PyPI](https://pypi.org/project/vodlint/):
+
+```bash
+python -m pip install vodlint
+```
+
+To install version 0.2.0 specifically:
+
+```bash
+python -m pip install "vodlint==0.2.0"
+```
+
+Verify the installation with `vodlint --version`. Python 3.11 or newer is required.
+
+### Install from source
 
 ```bash
 git clone https://github.com/afshinyarinia/vodlint.git

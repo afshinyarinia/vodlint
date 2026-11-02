@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0 — unreleased
+## [0.2.0](https://github.com/afshinyarinia/vodlint/releases/tag/v0.2.0) — 2026-11-02
 
 - Add manifest findings, actionable rule IDs, severity thresholds, and schema-v1 JSON.
 - Define exit codes: 0 passed, 1 lint failure, 2 operational or usage failure.
